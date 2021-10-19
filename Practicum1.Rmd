@@ -1,0 +1,6 @@
+---
+title: "Practicum1"
+author: "Matt Faucher, Kaelyn Jefferson"
+date: "10/19/2021"
+output: html_document
+---
