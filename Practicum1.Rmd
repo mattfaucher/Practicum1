@@ -4,3 +4,52 @@ author: "Matt Faucher, Kaelyn Jefferson"
 date: "10/19/2021"
 output: html_document
 ---
+## Connect to the Database
+```{r}
+library(RSQLite)
+path = "~/Documents/Align/Fall2021/CS5200/Practicum1/"
+file = "data.db"
+con <- dbConnect(RSQLite::SQLite(), paste0(path, file))
+```
+## Create Incidents Table
+```{sql connection=con}
+CREATE TABLE incidents (
+  PRIMARY KEY(iid) NOT NULL,
+  FOREIGN KEY(airline) REFERENCES airlines(airline),
+  iid INTEGER NOT NULL,
+  date DATE NOT NULL,
+  depPort VARCHAR(255) NOT NULL,
+  arrPort VARCHAR(255) NOT NULL,
+  airline VARCHAR(255) NOT NULL DEFAULT 'Unknown',
+  aircraft VARCHAR(255) NOT NULL,
+  flightPhase VARCHAR(255) NOT NULL,
+  impact VARCHAR(255) NOT NULL DEFAULT 'None'
+);
+```
+## Create Lookup table for Airlines
+```{sql connection=con}
+CREATE TABLE airlines (
+  PRIMARY KEY(aid) NOT NULL,
+  FOREIGN KEY(code) REFERENCES airports(code),
+  aid INTEGER NOT NULL,
+  code INTEGER NOT NULL,
+  airline VARCHAR(255) NOT NULL DEFAULT 'Unknown'
+);
+```
+## Create Lookup table for Airports
+```{sql connection=con}
+CREATE TABLE airports (
+  PRIMARY KEY(pid) NOT NULL,
+  FOREIGN KEY(code) REFERENCES airlines(code),
+  code INTEGER NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  city VARCHAR(255),
+  state VARCHAR(255) NOT NULL DEFAULT 'N/A',
+  country VARCHAR(255) NOT NULL DEFAULT 'USA'
+);
+```
+
+## Disconnect from the Databse
+```{r}
+dbDisconnect(con)
+```
