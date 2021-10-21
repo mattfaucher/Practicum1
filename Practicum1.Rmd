@@ -13,9 +13,7 @@ con <- dbConnect(RSQLite::SQLite(), paste0(path, file))
 ```
 ## Create Incidents Table
 ```{sql connection=con}
-CREATE TABLE incidents (
-  PRIMARY KEY(iid) NOT NULL,
-  FOREIGN KEY(airline) REFERENCES airlines(airline),
+CREATE TABLE IF NOT EXISTS incidents (
   iid INTEGER NOT NULL,
   date DATE NOT NULL,
   depPort VARCHAR(255) NOT NULL,
@@ -23,29 +21,32 @@ CREATE TABLE incidents (
   airline VARCHAR(255) NOT NULL DEFAULT 'Unknown',
   aircraft VARCHAR(255) NOT NULL,
   flightPhase VARCHAR(255) NOT NULL,
-  impact VARCHAR(255) NOT NULL DEFAULT 'None'
+  impact VARCHAR(255) NOT NULL DEFAULT 'None',
+  PRIMARY KEY (iid),
+  FOREIGN KEY (airline) REFERENCES airlines(airline)
 );
 ```
 ## Create Lookup table for Airlines
 ```{sql connection=con}
-CREATE TABLE airlines (
-  PRIMARY KEY(aid) NOT NULL,
-  FOREIGN KEY(code) REFERENCES airports(code),
+CREATE TABLE IF NOT EXISTS airlines (
   aid INTEGER NOT NULL,
   code INTEGER NOT NULL,
-  airline VARCHAR(255) NOT NULL DEFAULT 'Unknown'
+  airline VARCHAR(255) NOT NULL DEFAULT 'Unknown',
+  PRIMARY KEY (aid),
+  FOREIGN KEY (code) REFERENCES airports(code)
 );
 ```
 ## Create Lookup table for Airports
 ```{sql connection=con}
-CREATE TABLE airports (
-  PRIMARY KEY(pid) NOT NULL,
-  FOREIGN KEY(code) REFERENCES airlines(code),
+CREATE TABLE IF NOT EXISTS airports (
+  pid INTEGER NOT NULL,
   code INTEGER NOT NULL,
   name VARCHAR(255) NOT NULL,
   city VARCHAR(255),
   state VARCHAR(255) NOT NULL DEFAULT 'N/A',
-  country VARCHAR(255) NOT NULL DEFAULT 'USA'
+  country VARCHAR(255) NOT NULL DEFAULT 'USA',
+  PRIMARY KEY (pid),
+  FOREIGN KEY (code) REFERENCES airlines(code),
 );
 ```
 
