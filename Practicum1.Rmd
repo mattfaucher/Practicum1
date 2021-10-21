@@ -6,10 +6,18 @@ output: html_document
 ---
 ## Connect to the Database
 ```{r}
-library(RSQLite)
-path = "~/Documents/Align/Fall2021/CS5200/Practicum1/"
-file = "data.db"
-con <- dbConnect(RSQLite::SQLite(), paste0(path, file))
+# 1. Library
+library(RMySQL)
+library(DBI)
+# 2. Settings
+db_user <- 'root'
+db_password <- 'root'
+db_name <- 'data'
+db_host <- 'localhost'
+db_port <- 3306
+# 3. Read data from db
+con <- dbConnect(MySQL(), user = db_user, password = db_password,
+                 dbname = db_name, host = db_host, port = db_port)
 ```
 ## Create Incidents Table
 ```{sql connection=con}
@@ -22,8 +30,7 @@ CREATE TABLE IF NOT EXISTS incidents (
   aircraft VARCHAR(255) NOT NULL,
   flightPhase VARCHAR(255) NOT NULL,
   impact VARCHAR(255) NOT NULL DEFAULT 'None',
-  PRIMARY KEY (iid),
-  FOREIGN KEY (airline) REFERENCES airlines(airline)
+  PRIMARY KEY (iid)
 );
 ```
 ## Create Lookup table for Airlines
@@ -33,7 +40,6 @@ CREATE TABLE IF NOT EXISTS airlines (
   code INTEGER NOT NULL,
   airline VARCHAR(255) NOT NULL DEFAULT 'Unknown',
   PRIMARY KEY (aid),
-  FOREIGN KEY (code) REFERENCES airports(code)
 );
 ```
 ## Create Lookup table for Airports
@@ -46,10 +52,34 @@ CREATE TABLE IF NOT EXISTS airports (
   state VARCHAR(255) NOT NULL DEFAULT 'N/A',
   country VARCHAR(255) NOT NULL DEFAULT 'USA',
   PRIMARY KEY (pid),
-  FOREIGN KEY (code) REFERENCES airlines(code),
 );
 ```
-
+## Add Foreign Key References
+```{sql connection=con}
+ALTER TABLE incidents
+ADD FOREIGN KEY (airline) REFERENCES airlines(airline)
+```
+## Harmonize the flight phases
+```{sql connection=con}
+delimiter //
+CREATE TRIGGER IF NOT EXISTS harmonizeFlightPhases
+AFTER INSERT ON incidents
+  FOR EACH ROW
+  BEGIN
+    IF NEW.flightPhase IN ('Take-off run') THEN
+      SET NEW.flightPhase = 'takeoff';
+    END IF ;
+  END //
+delimiter ;
+```
+    IF NEW.flightPhase IN ('Landing roll') THEN
+      SET flightPhase = 'landing'
+    END IF;
+    IF NEW.flightPhase IN ('Climb', 'Descent', 'Approach') THEN
+      SET flightPhase = 'inflight'
+    ELSE
+      SET flightPhase = 'unknown'
+    END IF;
 ## Disconnect from the Databse
 ```{r}
 dbDisconnect(con)
