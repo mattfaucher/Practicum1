@@ -76,25 +76,23 @@ ADD FOREIGN KEY(code) REFERENCES airports(code);
 ```
 ## Harmonize the flight phases
 ```{sql connection=con}
-delimiter //
-CREATE TRIGGER IF NOT EXISTS harmonizeFlightPhases
-AFTER INSERT ON incidents
+CREATE TRIGGER harmonizeFlightPhases
+BEFORE INSERT ON incidents
   FOR EACH ROW
   BEGIN
     IF NEW.flightPhase IN ('Take-off run') THEN
       SET NEW.flightPhase = 'takeoff';
-    END IF ;
-  END //
-delimiter ;
-```
+    END IF;
     IF NEW.flightPhase IN ('Landing roll') THEN
-      SET flightPhase = 'landing'
+      SET NEW.flightPhase = 'landing';
     END IF;
     IF NEW.flightPhase IN ('Climb', 'Descent', 'Approach') THEN
-      SET flightPhase = 'inflight'
+      SET NEW.flightPhase = 'inflight';
     ELSE
-      SET flightPhase = 'unknown'
+      SET NEW.flightPhase = 'unknown';
     END IF;
+  END;
+```
 ## Disconnect from the Databse
 ```{r}
 dbDisconnect(con)
