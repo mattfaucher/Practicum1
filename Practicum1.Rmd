@@ -39,8 +39,13 @@ CREATE TABLE IF NOT EXISTS airlines (
   aid INTEGER NOT NULL,
   code INTEGER NOT NULL,
   airline VARCHAR(255) NOT NULL DEFAULT 'Unknown',
-  PRIMARY KEY (aid),
+  PRIMARY KEY (aid)
 );
+```
+## Create Index on Airline in Airlines
+```{sql connection=con}
+CREATE INDEX airline_idx
+ON airlines(airline);
 ```
 ## Create Lookup table for Airports
 ```{sql connection=con}
@@ -51,13 +56,23 @@ CREATE TABLE IF NOT EXISTS airports (
   city VARCHAR(255),
   state VARCHAR(255) NOT NULL DEFAULT 'N/A',
   country VARCHAR(255) NOT NULL DEFAULT 'USA',
-  PRIMARY KEY (pid),
+  PRIMARY KEY (pid)
 );
+```
+## Create Index on Code in Airports
+```{sql connection=con}
+CREATE INDEX code_idx
+ON airlines(code);
 ```
 ## Add Foreign Key References
 ```{sql connection=con}
 ALTER TABLE incidents
-ADD FOREIGN KEY (airline) REFERENCES airlines(airline)
+ADD FOREIGN KEY(airline) REFERENCES airlines(airline);
+```
+
+```{sql connection=con}
+ALTER TABLE airports
+ADD FOREIGN KEY(code) REFERENCES airports(code);
 ```
 ## Harmonize the flight phases
 ```{sql connection=con}
