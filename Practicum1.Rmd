@@ -24,12 +24,12 @@ con <- dbConnect(MySQL(), user = db_user, password = db_password,
 CREATE TABLE IF NOT EXISTS incidents (
   iid INTEGER NOT NULL,
   date DATE NOT NULL,
-  depPort VARCHAR(255) NOT NULL,
-  arrPort VARCHAR(255) NOT NULL,
-  airline VARCHAR(255) NOT NULL DEFAULT 'Unknown',
+  depPort VARCHAR(255) NOT NULL DEFAULT 'unknown',
+  arrPort VARCHAR(255) NOT NULL DEFAULT 'unknown',
+  airline VARCHAR(255) NOT NULL DEFAULT 'unknown',
   aircraft VARCHAR(255) NOT NULL,
   flightPhase VARCHAR(255) NOT NULL,
-  impact VARCHAR(255) NOT NULL DEFAULT 'None',
+  impact VARCHAR(255) NOT NULL DEFAULT 'none',
   PRIMARY KEY (iid)
 );
 ```
@@ -119,9 +119,11 @@ for (i in 1:25558) {
 }
 state <- df.raw$Origin.State
 country <- df.raw$Origin.State;
-for (i in length(country)) {
+for (i in 1:length(country)) {
   if (country[i] != 'N/A') {
     country[i] <- 'USA'
+  } else {
+    country[i] <- 'N/A'
   }
 }
 ```
@@ -139,6 +141,19 @@ code <- c(1:25558)
 airlines <- data.frame(aid, code, airline)
 dbWriteTable(con, "airlines", airlines, overwrite = T, row.names = F)
 ```
+## Place defaults in for empty values in incidents table
+```{sql connection=con}
+UPDATE incidents
+SET depPort = 'unknown', arrPort = 'unknown', airline = 'unknown'
+WHERE depPort = '' AND arrPort = '' AND airline = '';
+```
+
+```{sql connection=con}
+UPDATE airlines
+SET airline = 'unknown'
+WHERE airline = '';
+```
+
 ## Disconnect from the Databse
 ```{r}
 dbDisconnect(con)
