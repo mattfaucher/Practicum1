@@ -36,26 +36,26 @@ CREATE TABLE IF NOT EXISTS incidents (
 ## Create Lookup table for Airlines
 ```{sql connection=con}
 CREATE TABLE IF NOT EXISTS airlines (
-  aid INTEGER NOT NULL,
-  code INTEGER NOT NULL,
-  airline VARCHAR(255) NOT NULL DEFAULT 'Unknown',
+  aid INTEGER NOT NULL UNIQUE AUTO_INCREMENT,
+  code INTEGER NOT NULL UNIQUE,
+  airline VARCHAR(255) NOT NULL,
   PRIMARY KEY (aid)
 );
 ```
 ## Create Index on Airline in Airlines
 ```{sql connection=con}
 CREATE INDEX airline_idx
-ON airlines(airline);
+ON airlines(airline(255));
 ```
 ## Create Lookup table for Airports
 ```{sql connection=con}
 CREATE TABLE IF NOT EXISTS airports (
-  pid INTEGER NOT NULL,
-  code INTEGER NOT NULL,
+  pid INTEGER NOT NULL UNIQUE AUTO_INCREMENT,
+  code INTEGER NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
-  city VARCHAR(255),
+  city VARCHAR(255) DEFAULT 'N/A',
   state VARCHAR(255) NOT NULL DEFAULT 'N/A',
-  country VARCHAR(255) NOT NULL DEFAULT 'USA',
+  country VARCHAR(255) NOT NULL,
   PRIMARY KEY (pid)
 );
 ```
@@ -67,31 +67,77 @@ ON airlines(code);
 ## Add Foreign Key References
 ```{sql connection=con}
 ALTER TABLE incidents
-ADD FOREIGN KEY(airline) REFERENCES airlines(airline);
+ADD FOREIGN KEY(airline) REFERENCES airlines(airline)
+ON DELETE CASCADE;
 ```
 
 ```{sql connection=con}
 ALTER TABLE airports
-ADD FOREIGN KEY (code) REFERENCES airports(code);
+ADD FOREIGN KEY (code) REFERENCES airlines(code)
+ON DELETE CASCADE;
 ```
-## Harmonize the flight phases
-```{sql connection=con}
-CREATE TRIGGER harmonizeFlightPhases
-BEFORE INSERT ON incidents
-  FOR EACH ROW
-  BEGIN
-    IF NEW.flightPhase IN ('Take-off run') THEN
-      SET NEW.flightPhase = 'takeoff';
-    END IF;
-    IF NEW.flightPhase IN ('Landing roll') THEN
-      SET NEW.flightPhase = 'landing';
-    END IF;
-    IF NEW.flightPhase IN ('Climb', 'Descent', 'Approach') THEN
-      SET NEW.flightPhase = 'inflight';
-    ELSE
-      SET NEW.flightPhase = 'unknown';
-    END IF;
-  END;
+## Read Data from CSV (load)
+```{r}
+csvFile <- "BirdStrikesData.csv"
+df.raw <- read.csv(file = csvFile, header = T, stringsAsFactors = F)
+```
+## Create dataframe for incidents table
+```{r}
+iid <- df.raw$Record.ID
+date <- df.raw$FlightDate
+depPort <- df.raw$Airport..Name
+arrPort <- df.raw$Airport..Name
+airline <- df.raw$Aircraft..Airline.Operator
+aircraft <- df.raw$Aircraft..Make.Model
+flightPhase <- df.raw$When..Phase.of.flight
+# Harmonize flight phases
+for (i in 1: length(flightPhase)) 
+  if (flightPhase[i] == 'Take-off run'){
+    flightPhase[i] <- 'takeoff'
+  } else if (flightPhase[i] == 'Landing roll'){
+    flightPhase[i] <- 'landing'
+  } else if (flightPhase[i] %in% c('Climb', 'Descent', 'Approach')){
+    flightPhase[i] <- 'inflight'
+  } else flightPhase[i] <- 'unknown'
+
+impact <- df.raw$Effect..Indicated.Damage
+```
+## Place all data into incidents table
+```{r}
+# Build the data frame
+incidents <- data.frame(iid, date, depPort, arrPort, airline, aircraft, flightPhase, impact)
+dbWriteTable(con, "incidents", incidents, overwrite = T, row.names = F)
+```
+## Get all data for airports
+```{r}
+pid <- c(1:25558)
+code <- c(1:25558)
+name <- df.raw$Airport..Name
+city <- c()
+for (i in 1:25558) {
+  city[i] <- 'N/A'
+}
+state <- df.raw$Origin.State
+country <- df.raw$Origin.State;
+for (i in length(country)) {
+  if (country[i] != 'N/A') {
+    country[i] <- 'USA'
+  }
+}
+```
+## Build table for airports
+```{r}
+airports <- data.frame(pid, code, name, city, state, country)
+dbWriteTable(con, "airports", airports, overwrite = T, row.names = F)
+```
+## Create dataframe for airlines table & write table
+```{r}
+airline <- df.raw$Aircraft..Airline.Operator
+# Build the data frame
+aid <- c(1:25558)
+code <- c(1:25558)
+airlines <- data.frame(aid, code, airline)
+dbWriteTable(con, "airlines", airlines, overwrite = T, row.names = F)
 ```
 ## Disconnect from the Databse
 ```{r}
