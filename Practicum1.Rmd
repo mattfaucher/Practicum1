@@ -72,7 +72,7 @@ ADD FOREIGN KEY(airline) REFERENCES airlines(airline);
 
 ```{sql connection=con}
 ALTER TABLE airports
-ADD FOREIGN KEY(code) REFERENCES airports(code);
+ADD FOREIGN KEY (code) REFERENCES airports(code);
 ```
 ## Harmonize the flight phases
 ```{sql connection=con}
