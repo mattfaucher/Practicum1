@@ -2,7 +2,10 @@
 title: "Practicum1"
 author: "Matt Faucher, Kaelyn Jefferson"
 date: "10/19/2021"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
 ---
 ## Connect to the Database
 ```{r}
@@ -44,8 +47,8 @@ CREATE TABLE IF NOT EXISTS airlines (
 ```
 ## Create Index on Airline in Airlines
 ```{sql connection=con}
-CREATE INDEX airline_idx
-ON airlines(airline(255));
+ALTER TABLE airlines
+ADD INDEX airline_idx (airline);
 ```
 ## Create Lookup table for Airports
 ```{sql connection=con}
@@ -61,8 +64,8 @@ CREATE TABLE IF NOT EXISTS airports (
 ```
 ## Create Index on Code in Airports
 ```{sql connection=con}
-CREATE INDEX code_idx
-ON airlines(code);
+ALTER TABLE airlines
+ADD INDEX code_idx (code);
 ```
 ## Add Foreign Key References
 ```{sql connection=con}
@@ -70,7 +73,6 @@ ALTER TABLE incidents
 ADD FOREIGN KEY(airline) REFERENCES airlines(airline)
 ON DELETE CASCADE;
 ```
-
 ```{sql connection=con}
 ALTER TABLE airports
 ADD FOREIGN KEY (code) REFERENCES airlines(code)
@@ -85,6 +87,7 @@ df.raw <- read.csv(file = csvFile, header = T, stringsAsFactors = F)
 ```{r}
 iid <- df.raw$Record.ID
 date <- df.raw$FlightDate
+date <- as.Date(date, format = "%m/%d/%Y")
 depPort <- df.raw$Airport..Name
 arrPort <- df.raw$Airport..Name
 airline <- df.raw$Aircraft..Airline.Operator
@@ -94,9 +97,9 @@ flightPhase <- df.raw$When..Phase.of.flight
 for (i in 1: length(flightPhase)) 
   if (flightPhase[i] == 'Take-off run'){
     flightPhase[i] <- 'takeoff'
-  } else if (flightPhase[i] == 'Landing roll'){
+  } else if (flightPhase[i] %in% c('Landing roll', 'Approach')){
     flightPhase[i] <- 'landing'
-  } else if (flightPhase[i] %in% c('Climb', 'Descent', 'Approach')){
+  } else if (flightPhase[i] %in% c('Climb', 'Descent')){
     flightPhase[i] <- 'inflight'
   } else flightPhase[i] <- 'unknown'
 
@@ -147,11 +150,69 @@ UPDATE incidents
 SET depPort = 'unknown', arrPort = 'unknown', airline = 'unknown'
 WHERE depPort = '' AND arrPort = '' AND airline = '';
 ```
-
 ```{sql connection=con}
 UPDATE airlines
 SET airline = 'unknown'
 WHERE airline = '';
+```
+## Data Populated in the Inicidents table
+```{sql connection=con}
+SELECT * FROM incidents LIMIT 5;
+```
+The incidents table (showing 5 entries), we decided to use the Record.Id as the
+iid since this value was unique and acting as a primary key for records. The
+departing and arriving airports were listed as the same airport since we lacked
+data. Airlines that didn't have a value were modified to be "unknown". Flight
+Phase has been harmonized to be one of 4 categories (inflight, takeoff, landing,
+unknown). Takeoff consists of (Take-off run), inflight consists of ('Climb',
+'Descent'), and landing consists of (Landing roll, Approach), and anything else
+was categorized as Unknown.
+
+## Data Populated in the Airports table
+```{sql connection=con}
+SELECT * FROM airports LIMIT 5;
+```
+The airports table (showing 5 entries), has the pid and code values. These values were synthetically filled with unique numbers 1:25558. For the city column, we added N/A values since we were not provided with data. For country, if there was no state then we considered the country to be unknown (outside the US).
+
+## Data Populated in the Airlines table
+```{sql connection=con}
+SELECT * FROM airlines LIMIT 5;
+```
+The airlines table (showing 5 entries), we synthetically created the aid with values 1:25558. The code is the foreign key to the airports table (also synthetically created).
+
+## Create a SQL query against your database to find the number of bird strike incidents for each airline arriving at LaGuardia airport during any phase of landing
+```{sql connection=con}
+SELECT airline AS Airline, COUNT(iid) AS Num_Incidents FROM incidents
+WHERE arrPort LIKE 'LAGUARDIA NY'
+AND flightPhase LIKE 'LANDING'
+GROUP BY Airline
+ORDER BY Num_Incidents DESC;
+```
+## Create a SQL query against your database to find the airport that had the most bird strike incidents (during any flight phase). Include all commercial airlines, i.e., no business, private, or military flights.
+```{sql connection=con}
+SELECT counts.airline, MAX(counts.count) as Max
+FROM incidents as i,
+	(SELECT airline, COUNT(iid) as count FROM incidents
+    WHERE airline NOT LIKE '%business%' AND
+    airline NOT LIKE '%jet%' AND
+    airline NOT LIKE '%military%' AND
+    airline NOT LIKE '%cargo%' AND
+    airline NOT LIKE '%private%'AND
+    airline NOT LIKE '%logistics%'AND
+    airline NOT LIKE '%fedex%' AND
+    airline NOT LIKE '%government%' AND
+    airline NOT LIKE '%flight options%' AND
+    airline NOT LIKE '%unknown%'
+    GROUP BY airline) as counts
+GROUP BY counts.airline
+order by Max DESC;
+```
+
+## Create a SQL query against your database to find the number of bird strike incidents by year.
+```{sql connection=con}
+SELECT YEAR(date) AS Year, COUNT(iid) as Num_Incidents FROM incidents
+WHERE date IS NOT NULL
+GROUP BY Year;
 ```
 
 ## Disconnect from the Databse
