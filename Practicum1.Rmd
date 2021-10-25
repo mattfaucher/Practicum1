@@ -33,7 +33,9 @@ CREATE TABLE IF NOT EXISTS incidents (
   aircraft VARCHAR(255) NOT NULL,
   flightPhase VARCHAR(255) NOT NULL,
   impact VARCHAR(255) NOT NULL DEFAULT 'none',
-  PRIMARY KEY (iid)
+  INDEX airline_idx (airline(255)),
+  PRIMARY KEY (iid),
+  FOREIGN KEY (airline) REFERENCES airlines(airline) ON DELETE CASCADE
 );
 ```
 ## Create Lookup table for Airlines
@@ -42,13 +44,9 @@ CREATE TABLE IF NOT EXISTS airlines (
   aid INTEGER NOT NULL UNIQUE AUTO_INCREMENT,
   code INTEGER NOT NULL UNIQUE,
   airline VARCHAR(255) NOT NULL,
-  PRIMARY KEY (aid)
+  PRIMARY KEY (aid),
+  FOREIGN KEY (code) REFERENCES airports(code) ON DELETE CASCADE
 );
-```
-## Create Index on Airline in Airlines
-```{sql connection=con}
-ALTER TABLE airlines
-ADD INDEX airline_idx (airline);
 ```
 ## Create Lookup table for Airports
 ```{sql connection=con}
@@ -62,22 +60,7 @@ CREATE TABLE IF NOT EXISTS airports (
   PRIMARY KEY (pid)
 );
 ```
-## Create Index on Code in Airports
-```{sql connection=con}
-ALTER TABLE airlines
-ADD INDEX code_idx (code);
-```
-## Add Foreign Key References
-```{sql connection=con}
-ALTER TABLE incidents
-ADD FOREIGN KEY(airline) REFERENCES airlines(airline)
-ON DELETE CASCADE;
-```
-```{sql connection=con}
-ALTER TABLE airports
-ADD FOREIGN KEY (code) REFERENCES airlines(code)
-ON DELETE CASCADE;
-```
+
 ## Read Data from CSV (load)
 ```{r}
 csvFile <- "BirdStrikesData.csv"
@@ -190,7 +173,7 @@ ORDER BY Num_Incidents DESC;
 ```
 ## Create a SQL query against your database to find the airport that had the most bird strike incidents (during any flight phase). Include all commercial airlines, i.e., no business, private, or military flights.
 ```{sql connection=con}
-SELECT counts.airline, MAX(counts.count) as Max
+SELECT counts.airline as Commercial_Airline, MAX(counts.count) as Max_Incidents
 FROM incidents as i,
 	(SELECT airline, COUNT(iid) as count FROM incidents
     WHERE airline NOT LIKE '%business%' AND
@@ -205,8 +188,9 @@ FROM incidents as i,
     airline NOT LIKE '%unknown%'
     GROUP BY airline) as counts
 GROUP BY counts.airline
-order by Max DESC;
+order by Max_Incidents DESC LIMIT 1;
 ```
+In order to break down the airlines into groups so we could exclude everything that is not commercial, we added conditions to check for relevant keywords / substrings. The keywords we added filters for we know to not be commercial airlines based on the context of the words.
 
 ## Create a SQL query against your database to find the number of bird strike incidents by year.
 ```{r}
@@ -216,12 +200,14 @@ GROUP BY Year"
 incidentsPerYear <- dbGetQuery(con, query)
 print(incidentsPerYear)
 ```
+
 ## Using the above data, build a line chart that visualizes the number of bird strikes incidents per year from 2005 to 2011. Adorn the graph with appropriate axis labels, titles, legend, data labels, etc.
 ```{r}
 data <- incidentsPerYear[(incidentsPerYear$Year > 2004) & (incidentsPerYear$Year < 2012),]
+data <- data[order(data$Year),]
 x <- data$Year
 y <- data$Num_Incidents
-type = "l"
+type = "b"
 xlab = "Year"
 ylab = "Num Incidents"
 main = "Number of Bird Strike Incidents per Year"
@@ -229,6 +215,8 @@ xlim <- c(2005, 2011)
 ylim <- c(1700, 3300)
 plot(x = x, y = y, type = type, xlab = xlab, ylab = ylab, main = main, xlim = xlim, ylim = ylim)
 ```
+
+## Create a stored procedure in MySQL that removes a bird strike incident from the database. You may decide what you need to pass to the stored procedure to remove a bird strike incident, e.g., departure airport, airlines, or some ID. Show that the deletion worked as expected.
 
 ## Disconnect from the Databse
 ```{r}
