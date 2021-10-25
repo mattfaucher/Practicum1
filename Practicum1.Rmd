@@ -209,10 +209,25 @@ order by Max DESC;
 ```
 
 ## Create a SQL query against your database to find the number of bird strike incidents by year.
-```{sql connection=con}
-SELECT YEAR(date) AS Year, COUNT(iid) as Num_Incidents FROM incidents
+```{r}
+query <- "SELECT YEAR(date) AS Year, COUNT(iid) as Num_Incidents FROM incidents
 WHERE date IS NOT NULL
-GROUP BY Year;
+GROUP BY Year"
+incidentsPerYear <- dbGetQuery(con, query)
+print(incidentsPerYear)
+```
+## Using the above data, build a line chart that visualizes the number of bird strikes incidents per year from 2005 to 2011. Adorn the graph with appropriate axis labels, titles, legend, data labels, etc.
+```{r}
+data <- incidentsPerYear[(incidentsPerYear$Year > 2004) & (incidentsPerYear$Year < 2012),]
+x <- data$Year
+y <- data$Num_Incidents
+type = "l"
+xlab = "Year"
+ylab = "Num Incidents"
+main = "Number of Bird Strike Incidents per Year"
+xlim <- c(2005, 2011)
+ylim <- c(1700, 3300)
+plot(x = x, y = y, type = type, xlab = xlab, ylab = ylab, main = main, xlim = xlim, ylim = ylim)
 ```
 
 ## Disconnect from the Databse
