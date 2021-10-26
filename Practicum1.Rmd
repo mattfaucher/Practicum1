@@ -236,6 +236,10 @@ END //
 
 DELIMITER ;
 ```
+## Call Stored Procedure
+```{sql connection=con}
+CALL RemoveUnknownAirlines();
+```
 
 ## Disconnect from the Databse
 ```{r}
