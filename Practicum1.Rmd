@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS incidents (
 ## Add foreign key constraints
 ```{sql connection=con}
 ALTER TABLE incidents
-ADD CONSTRAINT
+ADD CONSTRAINT FK_AIRLINE
 FOREIGN KEY (airline) REFERENCES airlines(airline)
 ON UPDATE CASCADE
 ON DELETE CASCADE;
