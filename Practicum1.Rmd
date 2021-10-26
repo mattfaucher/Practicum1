@@ -60,12 +60,17 @@ CREATE TABLE IF NOT EXISTS incidents (
 ## Add foreign key constraints
 ```{sql connection=con}
 ALTER TABLE incidents
-ADD FOREIGN KEY (airline) REFERENCES airlines(airline)
+ADD CONSTRAINT
+FOREIGN KEY (airline) REFERENCES airlines(airline)
+ON UPDATE CASCADE
 ON DELETE CASCADE;
 ```
 ```{sql connection=con}
 ALTER TABLE airlines
-ADD FOREIGN KEY (code) REFERENCES airports(code);
+ADD CONSTRAINT
+FOREIGN KEY (code) REFERENCES airports(code)
+ON UPDATE CASCADE
+ON DELETE CASCADE;
 ```
 
 ## Read Data from CSV (load)
@@ -225,16 +230,15 @@ plot(x = x, y = y, type = type, xlab = xlab, ylab = ylab, main = main, xlim = xl
 
 ## Create a stored procedure in MySQL that removes a bird strike incident from the database. You may decide what you need to pass to the stored procedure to remove a bird strike incident, e.g., departure airport, airlines, or some ID. Show that the deletion worked as expected.
 ```{sql connection=con}
-DELIMITER //
-
+DROP PROCEDURE IF EXISTS RemoveUnknownAirlines;
+```
+```{sql connection=con}
 CREATE PROCEDURE RemoveUnknownAirlines()
 BEGIN
 	DELETE incidents, airlines
 	FROM incidents, airlines
     WHERE incidents.airline = 'unknown' AND incidents.airline = airlines.airline;
-END //
-
-DELIMITER ;
+END;
 ```
 ## Call Stored Procedure
 ```{sql connection=con}
