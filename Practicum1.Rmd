@@ -1,6 +1,6 @@
 ---
 title: "Practicum1"
-author: "Matt Faucher, Kaelyn Jefferson"
+author: "Matt Faucher (faucher.ma@northeastern.edu), Kaelyn Jefferson (jefferson.k@northeastern.edu)"
 date: "10/19/2021"
 output:
   html_document: default
