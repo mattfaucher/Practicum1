@@ -19,34 +19,7 @@ db_name <- 'data'
 db_host <- 'localhost'
 db_port <- 3306
 # 3. Read data from db
-con <- dbConnect(MySQL(), user = db_user, password = db_password,
-                 dbname = db_name, host = db_host, port = db_port)
-```
-## Create Incidents Table
-```{sql connection=con}
-CREATE TABLE IF NOT EXISTS incidents (
-  iid INTEGER NOT NULL,
-  date DATE NOT NULL,
-  depPort VARCHAR(255) NOT NULL DEFAULT 'unknown',
-  arrPort VARCHAR(255) NOT NULL DEFAULT 'unknown',
-  airline VARCHAR(255) NOT NULL DEFAULT 'unknown',
-  aircraft VARCHAR(255) NOT NULL,
-  flightPhase VARCHAR(255) NOT NULL,
-  impact VARCHAR(255) NOT NULL DEFAULT 'none',
-  INDEX airline_idx (airline(255)),
-  PRIMARY KEY (iid),
-  FOREIGN KEY (airline) REFERENCES airlines(airline) ON DELETE CASCADE
-);
-```
-## Create Lookup table for Airlines
-```{sql connection=con}
-CREATE TABLE IF NOT EXISTS airlines (
-  aid INTEGER NOT NULL UNIQUE AUTO_INCREMENT,
-  code INTEGER NOT NULL UNIQUE,
-  airline VARCHAR(255) NOT NULL,
-  PRIMARY KEY (aid),
-  FOREIGN KEY (code) REFERENCES airports(code) ON DELETE CASCADE
-);
+con <- dbConnect(MySQL(), user = db_user, password = db_password, dbname = db_name, host = db_host, port = db_port)
 ```
 ## Create Lookup table for Airports
 ```{sql connection=con}
@@ -59,6 +32,40 @@ CREATE TABLE IF NOT EXISTS airports (
   country VARCHAR(255) NOT NULL,
   PRIMARY KEY (pid)
 );
+```
+## Create Lookup table for Airlines
+```{sql connection=con}
+CREATE TABLE IF NOT EXISTS airlines (
+  aid INTEGER NOT NULL UNIQUE AUTO_INCREMENT,
+  code INTEGER NOT NULL UNIQUE,
+  airline VARCHAR(255) NOT NULL,
+  INDEX airline_idx (airline(255)),
+  PRIMARY KEY (aid)
+);
+```
+## Create Incidents Table
+```{sql connection=con}
+CREATE TABLE IF NOT EXISTS incidents (
+  iid INTEGER NOT NULL,
+  date DATE NOT NULL,
+  depPort VARCHAR(255) NOT NULL DEFAULT 'unknown',
+  arrPort VARCHAR(255) NOT NULL DEFAULT 'unknown',
+  airline VARCHAR(255) NOT NULL DEFAULT 'unknown',
+  aircraft VARCHAR(255) NOT NULL,
+  flightPhase VARCHAR(255) NOT NULL,
+  impact VARCHAR(255) NOT NULL DEFAULT 'none',
+  PRIMARY KEY (iid)
+);
+```
+## Add foreign key constraints
+```{sql connection=con}
+ALTER TABLE incidents
+ADD FOREIGN KEY (airline) REFERENCES airlines(airline)
+ON DELETE CASCADE;
+```
+```{sql connection=con}
+ALTER TABLE airlines
+ADD FOREIGN KEY (code) REFERENCES airports(code);
 ```
 
 ## Read Data from CSV (load)
@@ -116,7 +123,7 @@ for (i in 1:length(country)) {
 ## Build table for airports
 ```{r}
 airports <- data.frame(pid, code, name, city, state, country)
-dbWriteTable(con, "airports", airports, overwrite = T, row.names = F)
+dbWriteTable(con, "airports", airports, append = T, row.names = F)
 ```
 ## Create dataframe for airlines table & write table
 ```{r}
