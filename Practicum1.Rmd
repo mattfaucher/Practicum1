@@ -224,6 +224,18 @@ plot(x = x, y = y, type = type, xlab = xlab, ylab = ylab, main = main, xlim = xl
 ```
 
 ## Create a stored procedure in MySQL that removes a bird strike incident from the database. You may decide what you need to pass to the stored procedure to remove a bird strike incident, e.g., departure airport, airlines, or some ID. Show that the deletion worked as expected.
+```{sql connection=con}
+DELIMITER //
+
+CREATE PROCEDURE RemoveUnknownAirlines()
+BEGIN
+	DELETE incidents, airlines
+	FROM incidents, airlines
+    WHERE incidents.airline = 'unknown' AND incidents.airline = airlines.airline;
+END //
+
+DELIMITER ;
+```
 
 ## Disconnect from the Databse
 ```{r}
