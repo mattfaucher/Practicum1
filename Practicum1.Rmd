@@ -67,7 +67,7 @@ ON DELETE CASCADE;
 ```
 ```{sql connection=con}
 ALTER TABLE airlines
-ADD CONSTRAINT
+ADD CONSTRAINT FK_CODE
 FOREIGN KEY (code) REFERENCES airports(code)
 ON UPDATE CASCADE
 ON DELETE CASCADE;
@@ -104,7 +104,7 @@ impact <- df.raw$Effect..Indicated.Damage
 ```{r}
 # Build the data frame
 incidents <- data.frame(iid, date, depPort, arrPort, airline, aircraft, flightPhase, impact)
-dbWriteTable(con, "incidents", incidents, overwrite = T, row.names = F)
+dbWriteTable(con, "incidents", incidents, append = T, row.names = F)
 ```
 ## Get all data for airports
 ```{r}
@@ -137,7 +137,7 @@ airline <- df.raw$Aircraft..Airline.Operator
 aid <- c(1:25558)
 code <- c(1:25558)
 airlines <- data.frame(aid, code, airline)
-dbWriteTable(con, "airlines", airlines, overwrite = T, row.names = F)
+dbWriteTable(con, "airlines", airlines, append = T, row.names = F)
 ```
 ## Place defaults in for empty values in incidents table
 ```{sql connection=con}
@@ -233,7 +233,7 @@ plot(x = x, y = y, type = type, xlab = xlab, ylab = ylab, main = main, xlim = xl
 DROP PROCEDURE IF EXISTS RemoveUnknownAirlines;
 ```
 ```{sql connection=con}
-CREATE PROCEDURE RemoveUnknownAirlines()
+CREATE PROCEDURE RemoveUnknownAirlines(IN airline VARCHAR(255))
 BEGIN
 	DELETE incidents, airlines
 	FROM incidents, airlines
